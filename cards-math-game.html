@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Card Equation Game</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        padding: 20px;
+        background-color: #000000;
+        color: #ffffff;
+        margin: 0;
+        height: 90vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+      }
+      .game-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+      }
+      .card-container {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        margin-right: 20px;
+      }
+      .card {
+        width: 10vw; /* 10% of viewport width */
+        height: 15vw; /* Maintain aspect ratio, 1.5x width */
+        max-width: 120px; /* Cap to prevent oversized cards on large screens */
+        max-height: 180px;
+        min-width: 60px; /* Minimum size for small screens */
+        min-height: 90px;
+        border-radius: 1vw; /* Scale border radius */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: calc(1.5vw + 10px); /* Scale font, with a base size */
+        background-color: #1a1a1a;
+        cursor: pointer;
+        transition: transform 0.2s, opacity 0.3s;
+      }
+      .card.negative {
+        border: 2px solid #ff0000;
+        color: #ff0000;
+      }
+      .card.positive {
+        border: 2px solid #00ff00;
+        color: #00ff00;
+      }
+      .card.multiply {
+        border: 2px solid #ffff00;
+        color: #ffff00;
+      }
+      .card.divide {
+        border: 2px solid #00ffff;
+        color: #00ffff;
+      }
+      .card.exponent {
+        border: 2px solid #ff00ff; /* Magenta border */
+        color: #ff00ff; /* Magenta text */
+      }
+      .card:hover {
+        transform: scale(1.05);
+      }
+      .card.shrink {
+        width: 8vw; /* Reduced from 10vw */
+        height: 12vw; /* Reduced from 15vw, maintaining 1.5x ratio */
+        max-width: 96px; /* Reduced from 120px */
+        max-height: 144px; /* Reduced from 180px */
+        min-width: 48px; /* Reduced from 60px */
+        min-height: 72px; /* Reduced from 90px */
+        font-size: calc(1.2vw + 8px); /* Slightly smaller font */
+      }
+
+      .button-container {
+        display: flex;
+        flex-direction: column;
+        gap: 10px; /* Space between buttons */
+        margin-left: 20px; /* Space between cards and buttons */
+      }
+      button {
+        padding: 1vw 1vh; /* Scale padding with viewport width */
+        font-size: calc(0.8vw + 8px); /* Scale font, with a base size */
+        min-width: 80px; /* Minimum width for small screens */
+        min-height: 30px;
+        max-width: 120px; /* Cap for large screens */
+        cursor: pointer;
+        background-color: #1a1a1a;
+        color: #ffffff;
+        border: 0.2vw solid #ffffff; /* Scale border */
+        border-radius: 0.5vw; /* Scale border radius */
+      }
+      button:hover {
+        background-color: #2a2a2a;
+      }
+      .game-container button:nth-child(2) {
+        margin-top: 10px; /* Space between Action and Reset buttons */
+      }
+      #equation {
+        position: absolute;
+        left: 50%;
+        top: 20%;
+        font-size: 48px;
+        transform: translateX(-50%);
+        text-shadow: 0px 0px 20px;
+        opacity: 1;
+        transition: opacity 0.5s ease; /* Fade transition for enemy action */
+      }
+
+      /* CSS Animation for life value change */
+      .life-change {
+        animation: lifePulse 1s ease;
+      }
+
+      .energy-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-right: 20px; /* Space between energy ball and cards */
+      }
+      .energy-ball {
+        width: 50px;
+        height: 50px;
+        background-color: #ffffff; /* Default white */
+        border-radius: 50%;
+        box-shadow: 0 0 20px 10px #ffff00; /* Yellow glow */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        transition: background-color 0.3s ease; /* Smooth color transition */
+      }
+      .energy-number {
+        position: absolute; /* Changed to relative */
+        top: -40px;
+        font-size: calc(
+          1vw + 14px
+        ); /* Scales with viewport width, minimum 14px */
+        color: #ffffff;
+        text-shadow: 0 0 10px #ffff00; /* Yellow glow on the number */
+      }
+
+      @keyframes lifePulse {
+        0% {
+          transform: translateX(-50%) scale(1);
+        }
+        50% {
+          transform: translateX(-50%) scale(1.2);
+        }
+        100% {
+          transform: translateX(-50%) scale(1);
+        }
+      }
+      #win-goal {
+        position: absolute;
+        top: 1vh; /* Scale vertical position */
+        left: 1vw; /* Scale horizontal position */
+        font-size: clamp(
+          20px,
+          2.5vw + 10px,
+          36px
+        ); /* Min 20px, preferred 2.5vw + 10px, max 36px */
+        color: #00ff00; /* Green for win */
+      }
+
+      #lose-goal {
+        position: absolute;
+        top: 1vh; /* Scale vertical position */
+        right: 1vw; /* Scale horizontal position */
+        font-size: clamp(
+          20px,
+          2.5vw + 10px,
+          36px
+        ); /* Min 20px, preferred 2.5vw + 10px, max 36px */
+        color: #ff0000; /* Red for lose */
+      }
+      #battle-counter {
+        position: absolute;
+        top: 1vh; /* Scale vertical position */
+        left: 50%;
+        transform: translateX(-50%); /* Center horizontally */
+        font-size: clamp(
+          20px,
+          2.5vw + 10px,
+          36px
+        ); /* Match win/lose goal size */
+        color: #ffffff; /* White text */
+        text-shadow: 0 0 10px #ffffff; /* White glow for visibility */
+      }
+
+      #tournament-title {
+        position: absolute;
+        top: 20vh; /* Center vertically */
+        left: 50%;
+        transform: translateX(-50%); /* Center horizontally */
+        font-size: clamp(
+          24px,
+          4vw + 10px,
+          48px
+        ); /* Larger text for the title */
+        color: #ffffff; /* White text */
+        text-shadow: 0 0 10px #ffffff; /* White glow for visibility */
+      }
+
+      #play-again-button {
+        position: absolute;
+        top: 50vh; /* Below the title */
+        left: 50%;
+        transform: translateX(-50%); /* Center horizontally */
+        padding: 10px 20px;
+        font-size: clamp(16px, 2vw + 10px, 24px); /* Responsive font size */
+        background-color: #1a1a1a;
+        color: #ffffff;
+        border: 2px solid #ffffff;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+
+      #play-again-button:hover {
+        background-color: #2a2a2a;
+      }
+      /* Animation for energy ball color change */
+      @keyframes energyBallFlash {
+        0%,
+        50% {
+          background-color: #ff0000; /* Red */
+        }
+        25%,
+        75% {
+          background-color: #ffff00; /* Yellow */
+        }
+        100% {
+          background-color: #ffffff; /* Back to white */
+        }
+      }
+
+      /* Animation for energy number color change */
+      @keyframes energyNumberFlash {
+        0%,
+        50% {
+          color: #ff0000; /* Red */
+          text-shadow: 0 0 10px #ff0000; /* Red glow */
+        }
+        25%,
+        75% {
+          color: #ffffff; /* White */
+          text-shadow: 0 0 10px #ffff00; /* Yellow glow */
+        }
+        100% {
+          color: #ffffff; /* Back to white */
+          text-shadow: 0 0 10px #ffff00; /* Back to yellow glow */
+        }
+      }
+
+      /* Class to trigger the animation */
+      .energy-ball.flash {
+        animation: energyBallFlash 1s ease;
+      }
+
+      .energy-number.flash {
+        animation: energyNumberFlash 1s ease;
+      }
+
+      .goal-emoji {
+        font-size: 1.5em; /* Make emojis 1.5x larger than the text */
+        vertical-align: middle; /* Align emojis with the text */
+      }
+
+      .status-container {
+        position: absolute;
+        top: 35vh; /* Same vertical position as before */
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex; /* Use flexbox to align children horizontally */
+        align-items: center; /* Vertically center the timer and enemy life */
+        gap: 20px; /* Space between timer and enemy life, adjustable */
+      }
+
+      #timer {
+        font-size: clamp(20px, 2.5vw + 10px, 36px);
+        color: #02afff;
+        text-shadow: 0 0 10px #00a9f7;
+        transition: color 0.5s ease, text-shadow 0.5s ease;
+      }
+
+      #enemy-life {
+        font-size: clamp(36px, 4vw + 20px, 72px);
+      }
+
+      .overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.8);
+        z-index: 1000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="battle-counter">1/3 battles</div>
+    <div id="win-goal">Goal to Win: Enemy Life ≤ 0</div>
+    <div id="lose-goal">Goal to Lose: Enemy Life ≥ 200</div>
+    <div id="equation"></div>
+    <div class="status-container">
+      <div id="enemy-life">100</div>
+      <div id="timer">10</div>
+    </div>
+
+    <div class="game-container">
+      <div class="energy-container">
+        <div class="energy-ball">
+          <div class="energy-number">3</div>
+        </div>
+      </div>
+      <div id="cards" class="card-container"></div>
+      <div class="button-container">
+        <button onclick="solveEquationAndAdjustValues()">Action</button>
+        <button onclick="resetCards()">Reset Cards</button>
+      </div>
+    </div>
+
+    <script>
+      let enemyLife = 100; // Enemy health, starting value will be set dynamically
+      let equationValues = []; // Stores numbers and '*' or '/' operators
+      let gameActive = true; // Track game state
+      let previousCards = []; // Stores the previous cards played
+      let currentCardSet = []; // Stores the full set of cards dealt at the start of the turn
+      let energy = 3; // Starting energy per turn
+      let cardsPlayedThisTurn = 0; // Track number of cards played in the current turn
+      let startingEnemyLife = 0; // Store the starting enemy life for percentage calculations
+      let enemyGoal = 0; // Enemy's target life (lose condition)
+      let playerGoal = 0; // Player's target life (win condition)
+      let enemyGoalIsDecrease = false; // Track if enemy's goal is to decrease life
+      let enemyMoves = []; // Array of moves with probabilities for the selected enemy
+      let currentBattle = 1; // Track the current battle number (1 to 3)
+      let timer = null; // Timer interval ID
+      let timeLeft = 10; // Current time left on the timer
+      let bonusCardsNextTurn = 0; // Number of bonus cards to deal next turn
+      let bonusEnergyNextTurn = 0; // Number of bonus energy points to carry over to the next turn
+
+      // Predefined enemy configurations
+      const enemyConfigurations = [
+        {
+          enemy_life: 100,
+          enemy_goal: ">200",
+          player_goal: "<=0",
+          enemy_moves: { 0.1: "+20", "1.0": "+10" },
+          color: "#brown",
+        },
+        {
+          enemy_life: 100,
+          enemy_goal: "<=0",
+          player_goal: ">200",
+          enemy_moves: { 0.1: "-20", "1.0": "-10" },
+          color: "rgb(0,100,255)",
+        },
+        {
+          enemy_life: 1000,
+          enemy_goal: ">2000",
+          player_goal: "<0",
+          enemy_moves: { 0.1: "enemyLife*0.1", "1.0": "enemyLife*0.2" },
+          color: "white",
+        },
+        {
+          enemy_life: 250,
+          enemy_goal: ">500",
+          player_goal: "<=0",
+          enemy_moves: {
+            0.1: "+100",
+            0.2: "+50",
+            0.3: "+30",
+            0.5: "+20",
+            "1.0": "+10",
+          },
+          color: "rgb(100,200,50)",
+        },
+        {
+          enemy_life: 250,
+          enemy_goal: "<=0",
+          player_goal: ">500",
+          enemy_moves: {
+            0.1: "-100",
+            0.2: "-50",
+            0.3: "-30",
+            0.5: "-20",
+            "1.0": "-10",
+          },
+          color: "rgb(100,100,250)",
+        },
+        {
+          enemy_life: 250,
+          enemy_goal: "<=0",
+          player_goal: ">1500",
+          enemy_moves: {
+            0.2: "-enemyLife*0.2",
+            0.5: "-enemyLife*0.1",
+            "1.0": "-100",
+          },
+          color: "rgb(10,150,250)",
+        },
+        {
+          enemy_life: 1000,
+          enemy_goal: ">1500",
+          player_goal: "<-500",
+          enemy_moves: {
+            0.2: "+500",
+            0.5: "+enemyLife*0.1",
+            "1.0": "+150",
+          },
+          color: "rgb(200,200,250)",
+        },
+        {
+          enemy_life: 0,
+          enemy_goal: ">1500",
+          player_goal: "<-500",
+          enemy_moves: {
+            0.2: "+500",
+            0.5: "+enemyLife*0.1",
+            "1.0": "+150",
+          },
+          color: "rgb(200,200,0)",
+        },
+        {
+          enemy_life: 50,
+          enemy_goal: ">500",
+          player_goal: "<-500",
+          enemy_moves: {
+            0.1: "+500",
+            0.2: "+200",
+            0.5: "+enemyLife*0.1",
+            "1.0": "+50",
+          },
+          color: "rgb(250,255,0)",
+        },
+        {
+          enemy_life: 130,
+          enemy_goal: ">1000",
+          player_goal: "<-200",
+          enemy_moves: {
+            "1.0": "enemyLife*2",
+          },
+          color: "rgb(100,255,255)",
+        },
+        {
+          enemy_life: 410,
+          enemy_goal: "<0",
+          player_goal: ">1000",
+          enemy_moves: {
+            "1.0": "-enemyLife*2",
+          },
+          color: "rgb(200,20,255)",
+        },
+      ];
+      // Timing constants (in milliseconds)
+      const PLAYER_RESULT_DISPLAY_TIME = 300; // Time to show player's result
+      const DELAY_BETWEEN_RESULT_AND_LIFE_CHANGE = 500; // Time between showing equation result and changing life result
+      const LIFE_ANIMATION_DURATION = 1000; // Duration of the life pulse animation
+      const DELAY_BEFORE_ENEMY_MOVE = 1000; // Time between player life change and enemy move
+      const ENEMY_ACTION_DISPLAY_TIME = 1500; // Time to show enemy action
+      const DELAY_BEFORE_ENEMY_LIFE_CHANGE = 500; // Delay between showing enemy action and changing life
+      const ENEMY_ACTION_FADE_TIME = 500; // Duration of enemy action fade-out
+      const PAUSE_BEFORE_NEW_CARDS = 100; // Pause before dealing new cards
+      const SKIP_TURN_DELAY = 300; // Delay when skipping turn before enemy move
+      const DELAY_BEFORE_NEXT_BATTLE = 1500; // Time to wait before starting the next battle after a win
+      const DELAY_BEFORE_TOURNAMENT_END = 1500; // Time to wait before showing the tournament win/lose screen
+
+      // Timer and bonus energy constants
+      const TIMER_DURATION = 10; // Total timer duration in seconds
+      const BONUS_ENERGY_THRESHOLD_1 = 5; // 10s to 5s for 2 energy points
+      const BONUS_ENERGY_THRESHOLD_2 = 0; // 5s to 0s for 1 energy point
+      const BONUS_ENERGY_1 = 2; // Bonus energy for 10s-5s
+      const BONUS_ENERGY_2 = 1; // Bonus energy for 5s-0s
+
+      // Action evaluation constants
+      const VERY_GOOD_THRESHOLD = 0.2; // >20% progress for "Very Good"
+      const GOOD_THRESHOLD = 0.1; // 10%-20% progress for "Good"
+
+      // Probability constants for card generation
+      const MULTIPLY_PROBABILITY = 0.1; // 10% chance for '*'
+      const DIVIDE_PROBABILITY = 0.1; // 10% chance for '/'
+      const EXPONENT_PROBABILITY = 0.05; // 5% chance for '^'
+      const NUMBER_PROBABILITY =
+        1 - MULTIPLY_PROBABILITY - DIVIDE_PROBABILITY - EXPONENT_PROBABILITY; // Remaining 75% for numbers
+
+      // Probability within numbers for positive vs negative (must sum to 1)
+      const POSITIVE_NUMBER_PROBABILITY = 0.5; // 50% of number cards are positive
+      const NEGATIVE_NUMBER_PROBABILITY = 0.5; // 50% of number cards are negative
+
+      const TOTAL_BATTLES = 1; // Adjust this value to change the number of battles
+
+      // Centralized function to update enemy life with rounding
+      function updateEnemyLife(newValue) {
+        enemyLife = parseFloat(newValue.toFixed(2)); // Round to 2 decimals
+        const enemyLifeElement = document.getElementById("enemy-life");
+        enemyLifeElement.textContent = enemyLife.toFixed(0); // Update display
+      }
+
+      function getRandomCardValue() {
+        const rand = Math.random();
+        if (rand < MULTIPLY_PROBABILITY) return "*"; // Chance for multiplication card
+        if (rand < MULTIPLY_PROBABILITY + DIVIDE_PROBABILITY) return "/"; // Chance for division card
+        if (
+          rand <
+          MULTIPLY_PROBABILITY + DIVIDE_PROBABILITY + EXPONENT_PROBABILITY
+        )
+          return "^"; // Chance for exponent card
+
+        // Number generation
+        const numberRand = Math.random();
+        if (numberRand < POSITIVE_NUMBER_PROBABILITY) {
+          // Positive numbers: 0 to 10
+          return Math.floor(Math.random() * 11); // 0 to 10
+        } else {
+          // Negative numbers: -10 to 0
+          return Math.floor(Math.random() * 11) - 10; // -10 to 0
+        }
+      }
+
+      // Helper to show the equation with colored numbers and operators
+      function updateEquationDisplay() {
+        const equationElement = document.getElementById("equation");
+        let equationString = "";
+        equationValues.forEach((item, index) => {
+          if (item === "*") {
+            equationString += `<span style="color:yellow">*</span>`;
+          } else if (item === "/") {
+            equationString += `<span style="color:cyan">/</span>`;
+          } else if (item === "^") {
+            equationString += `<span style="color:magenta">^</span>`;
+          } else {
+            const color = item < 0 ? "red" : "lime";
+            const coloredNumber = `<span style="color:${color}">${item}</span>`;
+            if (index === 0) {
+              equationString = coloredNumber; // First number
+            } else if (
+              equationValues[index - 1] !== "*" &&
+              equationValues[index - 1] !== "/" &&
+              equationValues[index - 1] !== "^"
+            ) {
+              equationString += `${item < 0 ? "" : "+"}${coloredNumber}`; // Add + for positive, nothing for negative
+            } else {
+              equationString += coloredNumber; // No + after * or / or ^
+            }
+          }
+        });
+        equationElement.style.opacity = "1"; // Ensure visible when updating
+        equationElement.innerHTML = equationString;
+      }
+
+      function adjustEnemyLife(amount) {
+        const newLife = enemyLife + amount; // Calculate new life
+        updateEnemyLife(newLife); // Use centralized function
+
+        // Trigger animation
+        const enemyLifeElement = document.getElementById("enemy-life");
+        enemyLifeElement.classList.add("life-change");
+        setTimeout(() => {
+          enemyLifeElement.classList.remove("life-change");
+        }, LIFE_ANIMATION_DURATION); // Matches animation duration
+
+        // Only check game end immediately if result is infinite
+        if (!isFinite(enemyLife)) {
+          checkGameEnd();
+        }
+      }
+
+      function updateEnergyBallColor() {
+        const energyBall = document.querySelector(".energy-ball");
+        if (energy === 4) {
+          energyBall.style.backgroundColor = "#00FF00"; // Green
+          energyBall.style.boxShadow = "0 0 20px 10px #00FF00"; // Green glow
+        } else if (energy === 5) {
+          energyBall.style.backgroundColor = "#89CFF0"; // Light Blue
+          energyBall.style.boxShadow = "0 0 20px 10px #89CFF0"; // Light Blue glow
+        } else if (energy > 5) {
+          energyBall.style.backgroundColor = "#800080"; // Purple
+          energyBall.style.boxShadow = "0 0 20px 10px #800080"; // Purple glow
+        } else {
+          energyBall.style.backgroundColor = "#FFFFFF"; // Default white
+          energyBall.style.boxShadow = "0 0 20px 10px #FFFF00"; // Default yellow glow
+        }
+      }
+
+      function evaluateExpression(values) {
+        let result = 0;
+        let displayString = "";
+        let i = 0;
+        let leftGroup = ""; // To accumulate numbers before '*' or '^'
+        let leftResult = 0; // To calculate sum before '*' or '^'
+
+        while (i < values.length) {
+          if (values[i] === "*") {
+            i++; // Skip the '*'
+            let subtotal = 0;
+            let groupString = "(";
+            let groupStart = i;
+            // Group all numbers after '*' until next operator or end
+            while (
+              i < values.length &&
+              values[i] !== "*" &&
+              values[i] !== "/" &&
+              values[i] !== "^"
+            ) {
+              let num = parseInt(values[i]);
+              subtotal += num;
+              const color = num < 0 ? "red" : "lime";
+              if (i === groupStart) {
+                groupString += `<span style="color:${color}">${num}</span>`;
+              } else {
+                groupString += `${
+                  num < 0 ? "" : "+"
+                }<span style="color:${color}">${num}</span>`;
+              }
+              i++;
+            }
+            groupString += ")";
+
+            // If there's a left group, wrap it in parentheses and multiply
+            if (leftGroup !== "") {
+              result = leftResult * subtotal;
+              displayString = `(${leftGroup})<span style="color:yellow">*</span>${groupString}`;
+              leftGroup = ""; // Reset left group after multiplication
+              leftResult = 0;
+            } else if (result !== 0) {
+              result *= subtotal;
+              displayString += `<span style="color:yellow">*</span>${groupString}`;
+            } else {
+              result = subtotal; // Standalone group after '*'
+              displayString = groupString;
+            }
+          } else if (values[i] === "^") {
+            i++; // Skip the '^'
+            let exponent = 0;
+            let groupString = "(";
+            let groupStart = i;
+            // Group all numbers after '^' until next operator or end
+            while (
+              i < values.length &&
+              values[i] !== "*" &&
+              values[i] !== "/" &&
+              values[i] !== "^"
+            ) {
+              let num = parseInt(values[i]);
+              exponent += num;
+              const color = num < 0 ? "red" : "lime";
+              if (i === groupStart) {
+                groupString += `<span style="color:${color}">${num}</span>`;
+              } else {
+                groupString += `${
+                  num < 0 ? "" : "+"
+                }<span style="color:${color}">${num}</span>`;
+              }
+              i++;
+            }
+            groupString += ")";
+
+            // If there's a left group, apply exponentiation
+            if (leftGroup !== "") {
+              result = Math.pow(leftResult, exponent);
+              displayString = `(${leftGroup})<span style="color:magenta">^</span>${groupString}`;
+              leftGroup = ""; // Reset left group after exponentiation
+              leftResult = 0;
+            } else if (result !== 0) {
+              result = Math.pow(result, exponent);
+              displayString += `<span style="color:magenta">^</span>${groupString}`;
+            } else {
+              result = exponent; // Standalone group after '^' (treat as 0^exponent or 1 if no base)
+              displayString = groupString;
+            }
+          } else if (
+            i === 0 ||
+            (values[i - 1] !== "*" &&
+              values[i - 1] !== "/" &&
+              values[i - 1] !== "^")
+          ) {
+            let num = parseInt(values[i]);
+            result += num;
+            const color = num < 0 ? "red" : "lime";
+            const coloredNumber = `<span style="color:${color}">${num}</span>`;
+            if (leftGroup === "") {
+              leftGroup = coloredNumber;
+            } else {
+              leftGroup += `${num < 0 ? "" : "+"}${coloredNumber}`;
+            }
+            leftResult += num; // Accumulate result for left side
+            i++;
+          } else {
+            i++; // Skip numbers already processed in multiplication or exponentiation
+          }
+        }
+
+        // If no multiplication or exponentiation occurred, use the accumulated left group
+        if (displayString === "" && leftGroup !== "") {
+          displayString = leftGroup;
+        }
+
+        return { result, displayString };
+      }
+
+      function startTimer() {
+        timeLeft = TIMER_DURATION;
+        const timerElement = document.getElementById("timer");
+        timerElement.textContent = timeLeft;
+
+        // Clear any existing timer
+        if (timer) {
+          clearInterval(timer);
+        }
+
+        // Start the timer
+        timer = setInterval(() => {
+          timeLeft--;
+          timerElement.textContent = timeLeft;
+
+          // Update timer color based on time left
+          if (timeLeft > BONUS_ENERGY_THRESHOLD_1) {
+            timerElement.style.color = "#03b3ff"; // Baby blue
+            timerElement.style.textShadow = "0 0 10px #03b3ff";
+          } else {
+            timerElement.style.color = "#00FF00"; // Green
+            timerElement.style.textShadow = "0 0 10px #00FF00";
+          }
+
+          // If timer reaches 0, stop the timer (no bonus energy)
+          if (timeLeft <= 0) {
+            clearInterval(timer);
+            timer = null;
+          }
+        }, 1000); // Update every second
+      }
+
+      function stopTimer() {
+        if (timer) {
+          clearInterval(timer);
+          timer = null;
+        }
+      }
+
+      function evaluateAction(amount) {
+        // Calculate the total distance from starting enemy life to the goal
+        const totalDistance = Math.abs(startingEnemyLife - playerGoal);
+        const referenceDistance = totalDistance === 0 ? 1 : totalDistance;
+
+        // Calculate the progress made this turn
+        let progress = 0;
+        if (playerOperator === ">" || playerOperator === ">=") {
+          // For "greater than" goals, progress is positive if amount increases enemyLife towards the goal
+          if (amount > 0) {
+            progress = amount / referenceDistance;
+          } else if (amount < 0) {
+            progress = -Math.abs(amount) / referenceDistance;
+          }
+        } else if (playerOperator === "<" || playerOperator === "<=") {
+          // For "less than" goals, progress is positive if amount decreases enemyLife towards the goal
+          if (amount < 0) {
+            progress = Math.abs(amount) / referenceDistance;
+          } else if (amount > 0) {
+            progress = -amount / referenceDistance;
+          }
+        }
+
+        // Evaluate the action
+        if (progress >= VERY_GOOD_THRESHOLD) {
+          bonusCardsNextTurn = 2; // Very Good: 2 bonus cards
+          return { rating: "Very Good!", color: "#00FF00" }; // Green
+        } else if (progress >= GOOD_THRESHOLD) {
+          bonusCardsNextTurn = 1; // Good: 1 bonus card
+          return { rating: "Good!", color: "#FFFF00" }; // Yellow
+        } else {
+          bonusCardsNextTurn = 0; // Below Good: No bonus cards
+          return { rating: "Okay", color: "#FFFFFF" }; // White
+        }
+      }
+
+      function solveEquationAndAdjustValues() {
+        if (!gameActive) return;
+
+        const equationElement = document.getElementById("equation");
+
+        // If no cards are selected, skip the turn
+        if (equationValues.length === 0) {
+          setTimeout(() => {
+            equationElement.innerHTML = ""; // Clear equation display
+            enemyMove(); // Enemy makes its move with display
+          }, SKIP_TURN_DELAY);
+          return;
+        }
+
+        // Stop the timer and award bonus energy based on time left
+        stopTimer();
+        if (timeLeft > BONUS_ENERGY_THRESHOLD_1) {
+          bonusEnergyNextTurn += BONUS_ENERGY_1; // 2 bonus energy points
+        } else if (timeLeft > BONUS_ENERGY_THRESHOLD_2) {
+          bonusEnergyNextTurn += BONUS_ENERGY_2; // 1 bonus energy point
+        }
+
+        document.querySelector(".energy-number").textContent = energy;
+        // energy += bonusEnergyNextTurn;
+        updateEnergyBallColor(); // Update color
+
+        let result = 0;
+        let displayString = "";
+
+        // Check if '/' is present
+        let hasDivision = equationValues.includes("/");
+        if (hasDivision) {
+          // Division logic: (enemyLife) / (evaluated expression)
+          let denominatorValues = equationValues.filter((val) => val !== "/");
+          let { result: denominator, displayString: denomDisplay } =
+            evaluateExpression(denominatorValues);
+
+          result = Math.floor(enemyLife / denominator); // Integer division, allows Infinity or -Infinity
+          displayString = `(<span style="color:white">${enemyLife}</span>)<span style="color:cyan">/</span>(${denomDisplay})`;
+        } else {
+          // Normal multiplication, exponentiation, and addition/subtraction logic
+          let evalResult = evaluateExpression(equationValues);
+          result = evalResult.result;
+          displayString = evalResult.displayString;
+        }
+
+        // Display the reformatted equation with parentheses and result
+        equationElement.innerHTML =
+          displayString +
+          " = " +
+          `<span style="color: ${
+            result > 0 ? "lime" : "red"
+          }; text-shadow: 0px 0px 15px ${
+            result > 0 ? "lime" : "red"
+          }">${result}</span>`;
+
+        // Evaluate the action and show feedback
+        const { rating, color } = evaluateAction(result);
+        setTimeout(() => {
+          equationElement.innerHTML = `<span style="color:${color}">${rating}</span>`;
+        }, PLAYER_RESULT_DISPLAY_TIME);
+
+        setTimeout(() => {
+          setTimeout(() => {
+            adjustEnemyLife(result); // Player's move affects enemy life
+            if (gameActive) {
+              setTimeout(() => {
+                enemyMove(); // Enemy makes its move
+              }, DELAY_BEFORE_ENEMY_MOVE);
+            }
+          }, DELAY_BETWEEN_RESULT_AND_LIFE_CHANGE);
+        }, PLAYER_RESULT_DISPLAY_TIME);
+      }
+
+      function enemyMove() {
+        if (!gameActive) return;
+        const equationElement = document.getElementById("equation");
+        const rand = Math.random();
+        let enemyAction = 0;
+        let moveExpression = "";
+        for (const move of enemyMoves) {
+          if (rand <= move.probability) {
+            moveExpression = move.move;
+            break;
+          }
+        }
+        // If no move is selected (shouldn't happen with proper config), default to last move
+        if (!moveExpression)
+          moveExpression = enemyMoves[enemyMoves.length - 1].move;
+        enemyAction = parseFloat(eval(moveExpression).toFixed(2));
+        equationElement.style.opacity = "1";
+        equationElement.innerHTML = `<span style="color:yellow">Enemy: ${
+          enemyAction > 0 ? "+" : ""
+        }${enemyAction}</span>`;
+        setTimeout(() => {
+          adjustEnemyLife(enemyAction);
+          setTimeout(() => {
+            equationElement.style.opacity = "0";
+            setTimeout(() => {
+              equationElement.innerHTML = "";
+              equationElement.style.opacity = "1";
+              checkGameEnd();
+              if (gameActive)
+                setTimeout(() => dealCards(), PAUSE_BEFORE_NEW_CARDS);
+            }, ENEMY_ACTION_FADE_TIME);
+          }, ENEMY_ACTION_DISPLAY_TIME - DELAY_BEFORE_ENEMY_LIFE_CHANGE);
+        }, DELAY_BEFORE_ENEMY_LIFE_CHANGE);
+      }
+
+      function showMessage(message, color = "#ff0000") {
+        const equationElement = document.getElementById("equation");
+        equationElement.style.opacity = "1"; // Ensure visible
+        equationElement.innerHTML = `<span style="color:${color}; font-size: clamp(16px, 2vw + 10px, 32px);">${message}</span>`;
+
+        // Disable buttons to prevent further actions
+        const buttons = document.querySelectorAll(".button-container button");
+        buttons.forEach((button) => (button.disabled = true));
+      }
+
+      function endGameScreen(win) {
+        // End of tournament: Show "Won the tournament" screen
+        // Clear all game elements
+
+        // Create "Won the tournament" title
+        const overlay = document.createElement("div");
+        overlay.classList.add("overlay");
+        overlay.id = "overlay";
+        const title = document.createElement("div");
+        title.id = "tournament-title";
+        if (win === "win") {
+          title.textContent = "Won the tournament";
+        } else {
+          title.textContent = "You lose the tournament";
+        }
+
+        overlay.appendChild(title);
+
+        // Create "Play Again" button
+        const playAgainButton = document.createElement("button");
+        playAgainButton.id = "play-again-button";
+        playAgainButton.textContent = "Play Again";
+        playAgainButton.onclick = function () {
+          // Remove tournament title and button
+          document.getElementById("overlay").remove();
+          document.getElementById("equation").innerHTML = "";
+
+          // Reset battle counter
+          currentBattle = 1;
+          gameActive = true;
+          bonusEnergyNextTurn = 0;
+          bonusCardsNextTurn = 0;
+
+          // Restart the game
+          initializeGame();
+          dealCards();
+          // Re-enable buttons
+          const buttons = document.querySelectorAll(".button-container button");
+          buttons.forEach((button) => (button.disabled = false));
+        };
+
+        overlay.appendChild(playAgainButton);
+        document.body.appendChild(overlay);
+      }
+
+      function checkGameEnd() {
+        // Debug: Log the text content of win-goal and lose-goal
+        const winGoalText = document.getElementById("win-goal").textContent;
+        const loseGoalText = document.getElementById("lose-goal").textContent;
+        console.log("Win Goal Text:", winGoalText);
+        console.log("Lose Goal Text:", loseGoalText);
+
+        // Win condition: Player reaches their goal
+        const playerGoalMatch = document
+          .getElementById("win-goal")
+          .textContent.match(/👑\s*([<>]=?)\s*(-?\d+\.?\d*)$/);
+        if (!playerGoalMatch) {
+          throw new Error(
+            "Failed to parse player goal from win-goal element: " + winGoalText
+          );
+        }
+        const playerOperator = playerGoalMatch[1];
+        playerTarget = parseFloat(playerGoalMatch[2]);
+        let playerWins = false;
+        if (playerOperator === ">") playerWins = enemyLife > playerTarget;
+        if (playerOperator === ">=") playerWins = enemyLife >= playerTarget;
+        if (playerOperator === "<") playerWins = enemyLife < playerTarget;
+        if (playerOperator === "<=") playerWins = enemyLife <= playerTarget;
+
+        if (playerWins) {
+          showMessage("You Win! Enemy Life Goal Reached!", "lime");
+          gameActive = false;
+
+          // After DELAY_BEFORE_NEXT_BATTLE, either restart the game or show the tournament win screen
+          setTimeout(() => {
+            if (currentBattle < TOTAL_BATTLES) {
+              // Increment battle counter and restart the game
+              currentBattle++;
+              gameActive = true;
+              // Clear the win message
+              document.getElementById("equation").innerHTML = "";
+              initializeGame();
+              dealCards();
+              // Re-enable buttons
+              const buttons = document.querySelectorAll(
+                ".button-container button"
+              );
+              buttons.forEach((button) => (button.disabled = false));
+            } else {
+              endGameScreen("win");
+            }
+          }, DELAY_BEFORE_NEXT_BATTLE); // Use new constant for delay
+          return;
+        }
+
+        // Lose condition: Enemy reaches its goal
+        const enemyGoalMatch = document
+          .getElementById("lose-goal")
+          .textContent.match(/💀\s*([<>]=?)\s*(-?\d+\.?\d*)$/);
+        if (!enemyGoalMatch) {
+          throw new Error(
+            "Failed to parse enemy goal from lose-goal element: " + loseGoalText
+          );
+        }
+        const enemyOperator = enemyGoalMatch[1];
+        const enemyTarget = parseFloat(enemyGoalMatch[2]);
+        let enemyWins = false;
+        if (enemyOperator === ">") enemyWins = enemyLife > enemyTarget;
+        if (enemyOperator === ">=") enemyWins = enemyLife >= enemyTarget;
+        if (enemyOperator === "<") enemyWins = enemyLife < enemyTarget;
+        if (enemyOperator === "<=") enemyWins = enemyLife <= enemyTarget;
+
+        if (enemyWins) {
+          showMessage("Game Over! Enemy Reached Its Goal!", "red");
+          gameActive = false;
+
+          // After DELAY_BEFORE_TOURNAMENT_END, show the "You lose the tournament" screen
+          setTimeout(() => {
+            endGameScreen("loose");
+          }, DELAY_BEFORE_TOURNAMENT_END); // Use new constant for delay
+          return;
+        }
+
+        // Division by zero condition: Infinity or -Infinity
+        if (!isFinite(enemyLife)) {
+          showMessage(
+            enemyLife === Infinity
+              ? "Game Over! Enemy Overwhelmed by Infinity!"
+              : "Game Over! Enemy Lost in Negative Infinity!",
+            "purple"
+          );
+          gameActive = false;
+
+          // After DELAY_BEFORE_TOURNAMENT_END, show the "You lose the tournament" screen
+          setTimeout(() => {
+            // Clear all game elements
+            endGameScreen("loose");
+          }, DELAY_BEFORE_TOURNAMENT_END); // Use new constant for delay
+          return;
+        }
+      }
+
+      function showEnergyMessage() {
+        const energyBall = document.querySelector(".energy-ball");
+        const energyNumber = document.querySelector(".energy-number");
+
+        // Remove the flash class and force a reflow to restart the animation
+        energyBall.classList.remove("flash");
+        energyNumber.classList.remove("flash");
+        void energyBall.offsetHeight;
+        void energyNumber.offsetHeight;
+
+        // Trigger the flash animation by adding the class
+        energyBall.classList.add("flash");
+        energyNumber.classList.add("flash");
+
+        // Disable buttons during animation to prevent multiple triggers
+        const buttons = document.querySelectorAll(".button-container button");
+        buttons.forEach((button) => (button.disabled = true));
+
+        // Re-enable buttons and set game state after animation
+        setTimeout(() => {
+          if (!gameActive) {
+            buttons.forEach((button) => (button.disabled = true));
+          } else {
+            buttons.forEach((button) => (button.disabled = false));
+          }
+        }, 1000); // Matches animation duration
+      }
+
+      function initializeGame() {
+        const config =
+          enemyConfigurations[
+            Math.floor(Math.random() * enemyConfigurations.length)
+          ];
+        startingEnemyLife = config.enemy_life;
+        updateEnemyLife(startingEnemyLife);
+        document.getElementById("enemy-life").style.color = config.color;
+        const enemyGoalMatch = config.enemy_goal.match(
+          /^([<>]=?)(-?\d+\.?\d*)$/
+        );
+        if (!enemyGoalMatch)
+          throw new Error(`Invalid enemy goal format: ${config.enemy_goal}`);
+        const enemyOperator = enemyGoalMatch[1];
+        enemyGoal = parseFloat(enemyGoalMatch[2]);
+        enemyGoalIsDecrease = enemyOperator === "<=" || enemyOperator === "<";
+        const playerGoalMatch = config.player_goal.match(
+          /^([<>]=?)(-?\d+\.?\d*)$/
+        );
+        if (!playerGoalMatch)
+          throw new Error(`Invalid player goal format: ${config.player_goal}`);
+        playerOperator = playerGoalMatch[1];
+        playerGoal = parseFloat(playerGoalMatch[2]);
+        if (
+          enemyGoalIsDecrease &&
+          playerOperator !== ">" &&
+          playerOperator !== ">="
+        )
+          throw new Error(
+            "Player goal must oppose enemy goal (increase vs decrease)"
+          );
+        if (
+          !enemyGoalIsDecrease &&
+          playerOperator !== "<" &&
+          playerOperator !== "<="
+        )
+          throw new Error(
+            "Player goal must oppose enemy goal (decrease vs increase)"
+          );
+
+        // Corrected enemy moves processing
+        enemyMoves = [];
+        let previousBound = 0;
+        for (const [upperBound, move] of Object.entries(config.enemy_moves)) {
+          const probability = parseFloat(upperBound);
+          enemyMoves.push({ probability, move });
+          if (probability <= previousBound)
+            throw new Error(
+              "Enemy move probabilities must increase monotonically"
+            );
+          previousBound = probability;
+        }
+        if (previousBound !== 1.0)
+          throw new Error(
+            `Enemy move probabilities must end at 1.0, got ${previousBound}`
+          );
+
+        document.getElementById(
+          "lose-goal"
+        ).innerHTML = `<span class="goal-emoji">💀</span> ${enemyOperator}${enemyGoal}`;
+        document.getElementById(
+          "win-goal"
+        ).innerHTML = `<span class="goal-emoji">👑</span> ${playerOperator}${playerGoal}`;
+        document.getElementById(
+          "battle-counter"
+        ).textContent = `${currentBattle}/${TOTAL_BATTLES} battles`;
+      }
+
+      function dealCards() {
+        if (!gameActive) return;
+
+        equationValues = [];
+        currentCardSet = []; // Reset and store the new set
+        const cardsContainer = document.getElementById("cards");
+        cardsContainer.innerHTML = "";
+
+        // Reset energy and cards played at the start of the turn
+        energy = 3 + bonusEnergyNextTurn;
+        bonusEnergyNextTurn = 0;
+        cardsPlayedThisTurn = 0;
+        document.querySelector(".energy-number").textContent = energy; // Update display
+        updateEnergyBallColor();
+        // Start the timer
+        startTimer();
+
+        // Deal cards (base 5 + bonus cards)
+        const totalCards = 5 + bonusCardsNextTurn;
+        bonusCardsNextTurn = 0; // Reset bonus cards after dealing
+
+        for (let i = 0; i < totalCards; i++) {
+          const cardValue = getRandomCardValue();
+          currentCardSet.push(cardValue); // Store the card
+          const card = document.createElement("div");
+          card.className = "card";
+          if (totalCards > 5) {
+            card.classList.add("shrink");
+          }
+          if (cardValue === "*") {
+            card.classList.add("multiply");
+          } else if (cardValue === "/") {
+            card.classList.add("divide");
+          } else if (cardValue === "^") {
+            card.classList.add("exponent");
+          } else {
+            card.classList.add(cardValue < 0 ? "negative" : "positive");
+          }
+          card.textContent = cardValue;
+          card.onclick = function () {
+            if (!gameActive) return;
+            if (energy <= 0) {
+              showEnergyMessage(); // Trigger animation
+              return;
+            }
+            equationValues.push(
+              this.textContent === "*" ||
+                this.textContent === "/" ||
+                this.textContent === "^"
+                ? this.textContent
+                : parseInt(this.textContent)
+            );
+            updateEquationDisplay();
+            this.style.opacity = "0";
+            setTimeout(() => {
+              this.remove();
+            }, 300);
+            // Decrease energy and update display
+            energy--;
+            cardsPlayedThisTurn++;
+            document.querySelector(".energy-number").textContent = energy;
+          };
+          cardsContainer.appendChild(card);
+        }
+      }
+
+      function resetCards() {
+        if (!gameActive) return; // Do nothing if game is over
+        previousCards = [...equationValues]; // Store a copy of the cards played
+        equationValues = []; // Clear the current equation
+        document.getElementById("equation").innerHTML = ""; // Clear the display
+
+        // Reset energy and cards played
+        energy = 3;
+        cardsPlayedThisTurn = 0;
+
+        document.querySelector(".energy-number").textContent = energy; // Update display
+
+        // Restart the timer
+        //startTimer();
+
+        // Restore the original card set
+        const cardsContainer = document.getElementById("cards");
+        cardsContainer.innerHTML = "";
+        currentCardSet.forEach((cardValue) => {
+          const card = document.createElement("div");
+          card.className = "card";
+          if (currentCardSet.length > 5) {
+            card.classList.add("shrink");
+          }
+          if (cardValue === "*") {
+            card.classList.add("multiply");
+          } else if (cardValue === "/") {
+            card.classList.add("divide");
+          } else if (cardValue === "^") {
+            card.classList.add("exponent");
+          } else {
+            card.classList.add(cardValue < 0 ? "negative" : "positive");
+          }
+          card.textContent = cardValue;
+          card.onclick = function () {
+            if (!gameActive) return;
+            if (energy <= 0) {
+              showEnergyMessage(); // Trigger animation
+              return;
+            }
+            equationValues.push(
+              this.textContent === "*" ||
+                this.textContent === "/" ||
+                this.textContent === "^"
+                ? this.textContent
+                : parseInt(this.textContent)
+            );
+            updateEquationDisplay();
+            this.style.opacity = "0";
+            setTimeout(() => {
+              this.remove();
+            }, 300);
+            // Decrease energy and update display
+            energy--;
+
+            cardsPlayedThisTurn++;
+            document.querySelector(".energy-number").textContent = energy;
+          };
+          cardsContainer.appendChild(card);
+        });
+      }
+
+      // Initial setup
+      window.onload = function () {
+        initializeGame();
+        dealCards();
+      };
+    </script>
+  </body>
+</html>
